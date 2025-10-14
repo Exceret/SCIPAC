@@ -743,6 +743,72 @@ p3 <- ggplot() +
 cowplot::plot_grid(p1, p2, p3, nrow = 1)
 ```
 
+## Applying SCIPAC to spatial transcriptomics data
+
+SCIPAC now supports spatial transcriptomics data (Visium, Visium HD, Slide-seq, Xenium). The workflow is nearly identical to scRNA-seq, with one key change: use `preprocess.spatial.bulk.dat()` instead of `preprocess.sc.bulk.dat()`.
+
+### Workflow for spatial data
+
+Below is a demonstration of how to use SCIPAC with Visium data. Note that the code is not evaluated in this vignette.
+
+```{r, eval=FALSE}
+# Load spatial data using Seurat
+spatial_obj <- Load10X_Spatial(
+  data.dir = "path/to/spaceranger/output",
+  filename = "filtered_feature_bc_matrix.h5"
+)
+
+# Preprocess spatial and bulk data
+# This automatically detects the appropriate assay (Spatial, SCT, or RNA)
+spatial.bulk.prep <- preprocess.spatial.bulk.dat(
+  spatial.obj = spatial_obj,
+  bulk.dat = bulk.dat,  # Your bulk RNA-seq data
+  hvg = 1000
+)
+
+# The rest of the pipeline is identical to scRNA-seq
+pca.res <- sc.bulk.pca(
+  sc.dat = spatial.bulk.prep$spatial.dat.preprocessed,
+  bulk.dat = spatial.bulk.prep$bulk.dat.preprocessed,
+  do.pca.sc = FALSE,
+  n.pc = 60
+)
+
+ct.res <- seurat.ct(sc.dat = pca.res$sc.dat.rot, res = 2.0)
+
+SCIPAC.res <- SCIPAC(
+  bulk.dat = pca.res$bulk.dat.rot,
+  y = y,  # Your phenotype variable
+  family = "binomial",
+  ct.res = ct.res,
+  ela.net.alpha = 0.4,
+  bt.size = 50,
+  numCores = 7,
+  CI.alpha = 0.05,
+  nfold = 10
+)
+
+# Combine results with spatial coordinates for visualization
+coords <- GetTissueCoordinates(spatial_obj)
+spatial.results <- cbind(coords, SCIPAC.res)
+
+# Visualize Lambda values on tissue section
+ggplot(spatial.results, aes(x = x, y = y, color = Lambda.est)) +
+  geom_point(size = 1) +
+  scale_color_gradient2(
+    low = "darkblue",
+    mid = "white",
+    high = "darkred",
+    midpoint = 0
+  ) +
+  theme_void() +
+  coord_fixed() +
+  labs(title = "Phenotype Association on Tissue",
+       color = "Lambda")
+```
+
+For more details on spatial transcriptomics support, see `?preprocess.spatial.bulk.dat` or the package README.
+
 # Session Info
 
 ```{r}

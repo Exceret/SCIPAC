@@ -2,6 +2,7 @@
 
 export(SCIPAC)
 export(preprocess.sc.bulk.dat)
+export(preprocess.spatial.bulk.dat)
 export(sc.bulk.pca)
 export(seurat.ct)
 importFrom(dplyr,"%>%")
