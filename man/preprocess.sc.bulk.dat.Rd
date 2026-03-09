@@ -4,7 +4,7 @@
 \alias{preprocess.sc.bulk.dat}
 \title{Pre-process both single-cell and bulk data}
 \usage{
-preprocess.sc.bulk.dat(sc.dat, bulk.dat, hvg = 1000)
+preprocess.sc.bulk.dat(sc.dat, bulk.dat, hvg = 1000, assay = "RNA")
 }
 \arguments{
 \item{sc.dat}{single-cell data matrix. Rows stand for genes and columns stand for cells.}
@@ -12,6 +12,8 @@ preprocess.sc.bulk.dat(sc.dat, bulk.dat, hvg = 1000)
 \item{bulk.dat}{bulk data matrix. Rows stand for genes and columns stand for cells.}
 
 \item{hvg}{the number of highly variable genes. The default is \code{1000}.}
+
+\item{assay}{the assay name. The default is "RNA".}
 }
 \value{
 A list object contains pre-processed single-cell and bulk data

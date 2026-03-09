@@ -75,7 +75,7 @@ classifier.Lambda.core <- function(
         lambda = cv.ela.net$lambda.min,
         standardize = TRUE
       )
-      beta <- c(stats::coef(logit.mol.ela.net)[-1] )
+      beta <- c(stats::coef(logit.mol.ela.net)[-1])
     } else if (family == "cumulative") {
       # Apply penalized ordinal regression
       pen.logit.ela.net <- ordinalNet::ordinalNet(
@@ -141,7 +141,7 @@ classifier.Lambda.core <- function(
       lambda = cv.ela.net$lambda.min,
       standardize = TRUE
     )
-    beta <- c( stats::coef(linear.mol.ela.net)[-1])
+    beta <- c(stats::coef(linear.mol.ela.net)[-1])
 
     # Calculate Lambda
     Lambda <- sapply(c(1:K), function(k) {
@@ -207,7 +207,7 @@ classifier.Lambda.core <- function(
       lambda = cv.ela.net$lambda.min,
       standardize = TRUE
     )
-    beta <-  as.matrix(stats::coef(cox.ela.net) )
+    beta <- as.matrix(stats::coef(cox.ela.net))
 
     # Calculate Lambda
     Lambda <- sapply(c(1:K), function(k) {

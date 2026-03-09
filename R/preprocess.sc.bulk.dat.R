@@ -5,7 +5,7 @@
 #' @param assay the assay name. The default is "RNA".
 #'
 #' @return a single-cell data matrix. Rows stand for genes and columns stand for cells.
-obtain.preprocessed.data <- function(exprs.data, hvg = 1000,assay="RNA") {
+obtain.preprocessed.data <- function(exprs.data, hvg = 1000, assay = "RNA") {
   exprs.data <- Seurat::CreateSeuratObject(
     exprs.data,
     project = "CreateSeuratObject",
@@ -26,8 +26,7 @@ obtain.preprocessed.data <- function(exprs.data, hvg = 1000,assay="RNA") {
   exprs.data.norm <- exprs.data[[assay]]$data
   exprs.data.variable.genes <- Seurat::VariableFeatures(exprs.data)
 
-  processed.data <-  as.matrix(exprs.data.norm[exprs.data.variable.genes, ])
-   
+  processed.data <- as.matrix(exprs.data.norm[exprs.data.variable.genes, ])
 
   return(processed.data)
 }
@@ -43,11 +42,18 @@ obtain.preprocessed.data <- function(exprs.data, hvg = 1000,assay="RNA") {
 #' @param sc.dat single-cell data matrix. Rows stand for genes and columns stand for cells.
 #' @param bulk.dat bulk data matrix. Rows stand for genes and columns stand for cells.
 #' @param hvg the number of highly variable genes. The default is \code{1000}.
+#' @param assay the assay name. The default is "RNA".
+#'
 #'
 #' @return A list object contains pre-processed single-cell and bulk data
 #' @export
 
-preprocess.sc.bulk.dat <- function(sc.dat, bulk.dat, hvg = 1000) {
+preprocess.sc.bulk.dat <- function(
+  sc.dat,
+  bulk.dat,
+  hvg = 1000,
+  assay = "RNA"
+) {
   overlap.genes <- intersect(rownames(sc.dat), rownames(bulk.dat))
 
   sc.dat.new <- sc.dat[overlap.genes, ]
@@ -57,7 +63,8 @@ preprocess.sc.bulk.dat <- function(sc.dat, bulk.dat, hvg = 1000) {
 
   sc.dat.preprocessed <- obtain.preprocessed.data(
     exprs.data = sc.dat.new,
-    hvg = hvg
+    hvg = hvg,
+    assay = assay
   )
   bulk.dat.preprocessed <- bulk.dat.new[rownames(sc.dat.preprocessed), ]
 
