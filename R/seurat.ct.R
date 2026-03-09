@@ -8,7 +8,6 @@
 #' \item \code{ct.assignment}, a data frame with one column indicating cluster assignment. Row names of \code{ct.assignment} are cell names
 #' \item \code{centers}, cluster centroids. Rows are for PCs and columns are for clusters. Each cluster centroid is calculated by taking the average value of all the cells in the cluster.
 #' }
-#' @importFrom dplyr %>%
 #' @export
 
 seurat.ct <- function(sc.dat, res = 2.0) {

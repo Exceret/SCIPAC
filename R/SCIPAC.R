@@ -18,7 +18,6 @@
 #' @param nfold The number of folds used in cross-validation for regression models. The default is \code{nfold = 10}.
 #' @return a data frame with two columns. One column named ct.assignment is the cluster assignment, and the other one named
 #' Lambda is the calculated Lambda for each cell. Cells from the same cluster have the same value of Lambda.
-#' @importFrom dplyr %>%
 
 classifier.Lambda.core <- function(
   bulk.dat,
@@ -76,7 +75,7 @@ classifier.Lambda.core <- function(
         lambda = cv.ela.net$lambda.min,
         standardize = TRUE
       )
-      beta <- stats::coef(logit.mol.ela.net)[-1] %>% c()
+      beta <- c(stats::coef(logit.mol.ela.net)[-1] )
     } else if (family == "cumulative") {
       # Apply penalized ordinal regression
       pen.logit.ela.net <- ordinalNet::ordinalNet(
@@ -106,7 +105,7 @@ classifier.Lambda.core <- function(
       stop("Lambda calculation failed - no values produced")
     }
 
-    if (sd(ct.assign$Lambda) == 0) {
+    if (stats::sd(ct.assign$Lambda) == 0) {
       warning(
         "Lambda values have zero variance in binomial/cumulative regression"
       )
@@ -142,7 +141,7 @@ classifier.Lambda.core <- function(
       lambda = cv.ela.net$lambda.min,
       standardize = TRUE
     )
-    beta <- stats::coef(linear.mol.ela.net)[-1] %>% c()
+    beta <- c( stats::coef(linear.mol.ela.net)[-1])
 
     # Calculate Lambda
     Lambda <- sapply(c(1:K), function(k) {
@@ -157,7 +156,7 @@ classifier.Lambda.core <- function(
       stop("Lambda calculation failed - no values produced")
     }
 
-    if (sd(ct.assign$Lambda) == 0) {
+    if (stats::sd(ct.assign$Lambda) == 0) {
       warning(
         "Lambda values have zero variance in binomial/cumulative regression"
       )
@@ -208,7 +207,7 @@ classifier.Lambda.core <- function(
       lambda = cv.ela.net$lambda.min,
       standardize = TRUE
     )
-    beta <- stats::coef(cox.ela.net) %>% as.matrix()
+    beta <-  as.matrix(stats::coef(cox.ela.net) )
 
     # Calculate Lambda
     Lambda <- sapply(c(1:K), function(k) {
@@ -248,8 +247,8 @@ classifier.Lambda.core <- function(
 #' @param bt.size the number of bootstrap samples. The default is 50.
 #' @param nfold The number of folds used in cross-validation for regression models. The default is \code{nfold = 10}.
 #' @param numCores the number of cores used for parallel computing. The default is 7.
+#' @param debug logical. Whether to print debug information. The default is FALSE.
 #' @return A data frame whose rows are cells and columns are bootstrap samples.
-#' @importFrom dplyr %>%
 
 classifier.Lambda <- function(
   bulk.dat,
@@ -372,7 +371,6 @@ classifier.Lambda <- function(
 #' Each cluster centroid is calculated by taking the average value of all the cells in the cluster.
 #' @param CI.alpha significance level used to decide significantly positive/negative results. The default is 0.05.
 #' @return A data frame whose rows are cells and columns are bootstrap samples.
-#' @importFrom dplyr %>%
 #' @importFrom stats var
 
 obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
@@ -396,9 +394,9 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
   Lambda.sig <- rep(NA, nrow(Lambda.res))
 
   sign.res <- sign(Lambda.upper) + sign(Lambda.lower)
-  Lambda.sig[sign.res == 0] <- "Not.sig"
-  Lambda.sig[sign.res > 0] <- "Sig.pos"
-  Lambda.sig[sign.res < 0] <- "Sig.neg"
+  Lambda.sig[sign.res == 0] <- "Neutral"
+  Lambda.sig[sign.res > 0] <- "Positive"
+  Lambda.sig[sign.res < 0] <- "Negative"
 
   ct.assign <- K.means.res$ct.assignment
   ct.assign$Lambda.est <- Lambda.est
@@ -409,7 +407,7 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
 
   ct.assign$sig <- factor(
     ct.assign$sig,
-    levels = c("Sig.pos", "Sig.neg", "Not.sig")
+    levels = c("Positive", "Negative", "Neutral")
   )
 
   return(ct.assign)
@@ -453,7 +451,6 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
 #' \item (5). \code{sig}: significance identification, includes "Positive", "Negative", and "Neutral";
 #' \item (6). \code{log.pval}: log10 p-values
 #' }
-#' @importFrom dplyr %>%
 #' @export
 
 SCIPAC <- function(

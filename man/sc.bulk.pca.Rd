@@ -4,7 +4,7 @@
 \alias{sc.bulk.pca}
 \title{Use PCA to perform dimension reduction on single-cell and bulk data}
 \usage{
-sc.bulk.pca(sc.dat, bulk.dat, do.pca.sc = FALSE, n.pc = 60)
+sc.bulk.pca(sc.dat, bulk.dat, do.pca.sc = FALSE, n.pc = 60, batch_var = NULL)
 }
 \arguments{
 \item{sc.dat}{a normalized, log-transformed, and hvg's-selected single-cell data matrix, whose rows are for genes and columns are for cells.}
@@ -16,6 +16,8 @@ This data matrix uses the same gene set as \code{sc.dat}.}
 if \code{False}, first do PCA on \code{bulk.data} and use the rotation matrix on \code{sc.dat}. The default is \code{FALSE}.}
 
 \item{n.pc}{the number of PCs used for downstream analysis. The default is \code{60}.}
+
+\item{batch_var}{a vector indicating batch assignment for each cell in sc.dat. If provided, harmony batch correction will be applied. The default is \code{NULL}.}
 }
 \value{
 A list object contains dimension-reduced single-cell and bulk data.

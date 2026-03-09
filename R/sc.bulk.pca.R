@@ -9,7 +9,6 @@
 #' @param batch_var a vector indicating batch assignment for each cell in sc.dat. If provided, harmony batch correction will be applied. The default is \code{NULL}.
 #'
 #' @return A list object contains dimension-reduced single-cell and bulk data.
-#' @importFrom dplyr %>%
 #' @export
 
 sc.bulk.pca <- function(

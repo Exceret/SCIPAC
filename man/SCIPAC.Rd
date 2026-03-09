@@ -13,7 +13,8 @@ SCIPAC(
   bt.size = 50,
   numCores = 7,
   CI.alpha = 0.05,
-  nfold = 10
+  nfold = 10,
+  debug = FALSE
 )
 }
 \arguments{
@@ -51,6 +52,8 @@ This renaming is required for the algorithm used.
 \item{CI.alpha}{significance level used to decide significantly positive/negative results. The default is \code{CI.alpha = 0.05}.}
 
 \item{nfold}{The number of folds used in cross-validation for regression models. The default is \code{nfold = 10}.}
+
+\item{debug}{If TRUE, runs in debug mode with single core and verbose output. Default is FALSE.}
 }
 \value{
 A data frame with six columns. Row names are cells. The six columns are
@@ -59,7 +62,7 @@ A data frame with six columns. Row names are cells. The six columns are
 \item (2). \code{Lambda.est}: the estimated Lambda;
 \item (3). \code{Lambda.upper}: the upper value of the confidence interval;
 \item (4). \code{Lambda.lower}: the lower value of the confidence interval;
-\item (5). \code{sig}: significance identification, includes "Sig.pos", "Sig.neg", and "Not.sig";
+\item (5). \code{sig}: significance identification, includes "Positive", "Negative", and "Neutral";
 \item (6). \code{log.pval}: log10 p-values
 }
 }

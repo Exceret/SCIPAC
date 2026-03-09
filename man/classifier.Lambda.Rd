@@ -12,7 +12,8 @@ classifier.Lambda(
   ela.net.alpha,
   bt.size,
   nfold = nfold,
-  numCores
+  numCores,
+  debug = FALSE
 )
 }
 \arguments{
@@ -41,6 +42,8 @@ Each cluster centroid is calculated by taking the average value of all the cells
 \item{nfold}{The number of folds used in cross-validation for regression models. The default is \code{nfold = 10}.}
 
 \item{numCores}{the number of cores used for parallel computing. The default is 7.}
+
+\item{debug}{logical. Whether to print debug information. The default is FALSE.}
 }
 \value{
 A data frame whose rows are cells and columns are bootstrap samples.

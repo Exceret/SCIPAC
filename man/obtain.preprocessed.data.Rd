@@ -4,12 +4,14 @@
 \alias{obtain.preprocessed.data}
 \title{Normalize scRNA-seq data and find highly variable genes without scaling using Seurat}
 \usage{
-obtain.preprocessed.data(exprs.data, hvg = 1000)
+obtain.preprocessed.data(exprs.data, hvg = 1000, assay = "RNA")
 }
 \arguments{
 \item{exprs.data}{single-cell data matrix. Rows stand for genes and columns stand for cells.}
 
 \item{hvg}{the number of highly variable genes. The default is 1000.}
+
+\item{assay}{the assay name. The default is "RNA".}
 }
 \value{
 a single-cell data matrix. Rows stand for genes and columns stand for cells.
