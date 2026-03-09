@@ -101,8 +101,21 @@ classifier.Lambda.core <- function(
     })
     ct.idx <- ct.assign$cluster_assignment
     ct.assign$Lambda <- Lambda[ct.idx]
-    # Do the standardization
-    ct.assign$Lambda <- scale(ct.assign$Lambda, center = TRUE, scale = TRUE)
+    # Do the standardization with consistent handling
+    if (length(ct.assign$Lambda) == 0) {
+      stop("Lambda calculation failed - no values produced")
+    }
+
+    if (sd(ct.assign$Lambda) == 0) {
+      warning(
+        "Lambda values have zero variance in binomial/cumulative regression"
+      )
+      ct.assign$Lambda <- rep(0, length(ct.assign$Lambda))
+    } else {
+      ct.assign$Lambda <- scale(ct.assign$Lambda, center = TRUE, scale = TRUE)
+      # Ensure it's a vector, not a matrix
+      ct.assign$Lambda <- as.numeric(ct.assign$Lambda)
+    }
     return(ct.assign)
   } else if (family == "gaussian") {
     n.row <- nrow(bulk.dat)
@@ -139,8 +152,21 @@ classifier.Lambda.core <- function(
     })
     ct.idx <- ct.assign$cluster_assignment
     ct.assign$Lambda <- Lambda[ct.idx]
-    # Do the standardization
-    ct.assign$Lambda <- scale(ct.assign$Lambda, center = TRUE, scale = TRUE)
+    # Do the standardization with consistent handling
+    if (length(ct.assign$Lambda) == 0) {
+      stop("Lambda calculation failed - no values produced")
+    }
+
+    if (sd(ct.assign$Lambda) == 0) {
+      warning(
+        "Lambda values have zero variance in binomial/cumulative regression"
+      )
+      ct.assign$Lambda <- rep(0, length(ct.assign$Lambda))
+    } else {
+      ct.assign$Lambda <- scale(ct.assign$Lambda, center = TRUE, scale = TRUE)
+      # Ensure it's a vector, not a matrix
+      ct.assign$Lambda <- as.numeric(ct.assign$Lambda)
+    }
     return(ct.assign)
   } else if (family == "cox") {
     # Re-sampling the whole survival data
@@ -148,21 +174,35 @@ classifier.Lambda.core <- function(
     re.sample <- sample(all.rownames, length(all.rownames), replace = TRUE)
     re.sample.dat <- bulk.dat[re.sample, ]
 
-    new.y <- y[rownames(re.sample.dat), ]
+    # Handle matrix format for y
+    if (is.matrix(y)) {
+      y <- as.data.frame(y)
+    }
+
+    # Use match to ensure proper alignment of row names
+    matched_indices <- match(re.sample, rownames(y))
+    new.y <- y[matched_indices, ]
     new.sample.ave <- colSums(re.sample.dat) / nrow(re.sample.dat)
 
-    # Apply cox regression
+    # Adjust nfolds based on number of events to prevent CV errors
+    n_events <- sum(new.y$status == 1)
+    adjusted_nfold <- min(nfold, n_events)
+
+    # Create Surv object for cox regression
+    surv_obj <- survival::Surv(time = new.y$time, event = new.y$status)
+
+    # Apply cox regression with adjusted nfolds
     cv.ela.net <- glmnet::cv.glmnet(
       re.sample.dat,
-      new.y,
+      surv_obj,
       family = "cox",
       type.measure = "C",
       alpha = ela.net.alpha,
-      nfolds = nfold
+      nfolds = adjusted_nfold
     )
     cox.ela.net <- glmnet::glmnet(
       re.sample.dat,
-      new.y,
+      surv_obj,
       family = "cox",
       alpha = ela.net.alpha,
       lambda = cv.ela.net$lambda.min,
@@ -219,28 +259,92 @@ classifier.Lambda <- function(
   ela.net.alpha,
   bt.size,
   nfold = nfold,
-  numCores
+  numCores,
+  debug = FALSE
 ) {
   fx <- function(seed) {
     set.seed(seed)
-    return(classifier.Lambda.core(
-      bulk.dat,
-      y,
-      family,
-      K.means.res,
-      ela.net.alpha = ela.net.alpha,
-      nfold = nfold
-    ))
+    tryCatch(
+      {
+        if (debug && seed == 1) {
+          message("Debug: Running first bootstrap sample...")
+          message(
+            "  Bulk data dimensions: ",
+            nrow(bulk.dat),
+            " x ",
+            ncol(bulk.dat)
+          )
+          message("  Y dimensions: ", nrow(y), " x ", ncol(y))
+          message("  Number of clusters: ", K.means.res$k)
+        }
+        result <- classifier.Lambda.core(
+          bulk.dat,
+          y,
+          family,
+          K.means.res,
+          ela.net.alpha = ela.net.alpha,
+          nfold = nfold
+        )
+        if (debug && seed == 1) {
+          message("  Lambda calculation successful")
+          message("  Result structure: ", paste(names(result), collapse = ", "))
+          if (!is.null(result$Lambda)) {
+            message("  Lambda length: ", length(result$Lambda))
+          }
+        }
+        return(result)
+      },
+      error = function(e) {
+        if (debug) {
+          message("Error in bootstrap sample ", seed, ": ", e$message)
+        }
+        return(list(error = TRUE, message = as.character(e), seed = seed))
+      }
+    )
   }
   K <- K.means.res$k
   ct.assign <- K.means.res$ct.assignment
 
   seed.ls <- c(1:bt.size)
-  Lambda.tab <- parallel::mclapply(seed.ls, fx, mc.cores = numCores)
 
-  Lambda.res <- matrix(NA, nrow = nrow(ct.assign), ncol = bt.size)
-  for (i in 1:ncol(Lambda.res)) {
-    Lambda.res[, i] <- Lambda.tab[[i]]$Lambda
+  if (debug || numCores == 1) {
+    # Use lapply for better error reporting in debug mode
+    Lambda.tab <- lapply(seed.ls, fx)
+  } else {
+    Lambda.tab <- parallel::mclapply(seed.ls, fx, mc.cores = numCores)
+  }
+
+  # Check for errors in parallel execution
+  errors <- sapply(Lambda.tab, function(x) {
+    inherits(x, "try-error") || (!is.null(x$error) && x$error)
+  })
+
+  if (all(errors)) {
+    # If all bootstrap samples failed, check the first error message
+    first_error <- Lambda.tab[[1]]
+    if (!is.null(first_error$message)) {
+      stop("All bootstrap samples failed. First error: ", first_error$message)
+    } else {
+      stop("All bootstrap samples failed in parallel execution")
+    }
+  }
+
+  # Get valid results only
+  valid_idx <- which(!errors)
+  if (length(valid_idx) < bt.size * 0.5) {
+    warning(sprintf(
+      "Only %d out of %d bootstrap samples succeeded. Results may be unreliable.",
+      length(valid_idx),
+      bt.size
+    ))
+  }
+
+  Lambda.res <- matrix(NA, nrow = nrow(ct.assign), ncol = length(valid_idx))
+  for (i in seq_along(valid_idx)) {
+    idx <- valid_idx[i]
+    if (!is.null(Lambda.tab[[idx]]$Lambda)) {
+      Lambda.res[, i] <- Lambda.tab[[idx]]$Lambda
+    }
   }
 
   # Delete columns with NAs.
@@ -250,6 +354,11 @@ classifier.Lambda <- function(
     na.idx <- which(is.na(Lambda.res[1, ]))
     Lambda.res <- Lambda.res[, -na.idx]
   }
+
+  if (ncol(Lambda.res) == 0) {
+    stop("No valid bootstrap samples were produced")
+  }
+
   return(Lambda.res)
 }
 
@@ -287,9 +396,9 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
   Lambda.sig <- rep(NA, nrow(Lambda.res))
 
   sign.res <- sign(Lambda.upper) + sign(Lambda.lower)
-  Lambda.sig[sign.res == 0] <- "Neutral"
-  Lambda.sig[sign.res > 0] <- "Positive"
-  Lambda.sig[sign.res < 0] <- "Negative"
+  Lambda.sig[sign.res == 0] <- "Not.sig"
+  Lambda.sig[sign.res > 0] <- "Sig.pos"
+  Lambda.sig[sign.res < 0] <- "Sig.neg"
 
   ct.assign <- K.means.res$ct.assignment
   ct.assign$Lambda.est <- Lambda.est
@@ -300,7 +409,7 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
 
   ct.assign$sig <- factor(
     ct.assign$sig,
-    levels = c("Positive", "Negative", "Neutral")
+    levels = c("Sig.pos", "Sig.neg", "Not.sig")
   )
 
   return(ct.assign)
@@ -334,6 +443,7 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
 #' @param numCores the number of cores used for parallel computing. The default is \code{numCores = 7}.
 #' @param CI.alpha significance level used to decide significantly positive/negative results. The default is \code{CI.alpha = 0.05}.
 #' @param nfold The number of folds used in cross-validation for regression models. The default is \code{nfold = 10}.
+#' @param debug If TRUE, runs in debug mode with single core and verbose output. Default is FALSE.
 #' @return A data frame with six columns. Row names are cells. The six columns are
 #' \itemize{
 #' \item (1). \code{cluster_assignment}: the cluster assignment of each cell;
@@ -355,8 +465,14 @@ SCIPAC <- function(
   bt.size = 50,
   numCores = 7,
   CI.alpha = 0.05,
-  nfold = 10
+  nfold = 10,
+  debug = FALSE
 ) {
+  if (debug) {
+    message("Running SCIPAC in debug mode with single core...")
+    numCores <- 1
+  }
+
   Lambda.res <- classifier.Lambda(
     bulk.dat,
     y,
@@ -365,7 +481,8 @@ SCIPAC <- function(
     ela.net.alpha = ela.net.alpha,
     bt.size = bt.size,
     nfold = nfold,
-    numCores = numCores
+    numCores = numCores,
+    debug = debug
   )
   ct.assign <- obtain.ct.Lambda(Lambda.res, ct.res, CI.alpha = CI.alpha)
   return(ct.assign)
