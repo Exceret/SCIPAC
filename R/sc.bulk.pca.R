@@ -11,34 +11,53 @@
 #' @importFrom dplyr %>%
 #' @export
 
-sc.bulk.pca <- function(sc.dat, bulk.dat, do.pca.sc = FALSE, n.pc = 60){
-  if(all(rownames(sc.dat) == rownames(bulk.dat))) {
+sc.bulk.pca <- function(sc.dat, bulk.dat, do.pca.sc = FALSE, n.pc = 60) {
+  if (all(rownames(sc.dat) == rownames(bulk.dat))) {
     # Do the centering
-    sc.dat.cen <- scale(t(sc.dat), center = rowSums(sc.dat)/ncol(sc.dat), scale = FALSE)
-    bulk.dat.cen <- scale(t(bulk.dat), center = rowSums(bulk.dat)/ncol(bulk.dat), scale = FALSE)
+    sc.dat.cen <- scale(
+      t(sc.dat),
+      center = rowSums(sc.dat) / ncol(sc.dat),
+      scale = FALSE
+    )
+    bulk.dat.cen <- scale(
+      t(bulk.dat),
+      center = rowSums(bulk.dat) / ncol(bulk.dat),
+      scale = FALSE
+    )
 
-    if(do.pca.sc){
+    if (do.pca.sc) {
       # Do PCA from single cell data
-      sc.dat.pca <- stats::prcomp(sc.dat.cen, center = FALSE, scale. = FALSE)
+      sc.dat.pca <- stats::prcomp(
+        sc.dat.cen,
+        center = FALSE,
+        scale. = FALSE
+      )
       sc.dat.pca.rotation <- sc.dat.pca[["rotation"]]
 
       sc.dat.rot <- sc.dat.cen %*% sc.dat.pca.rotation
       bulk.dat.rot <- bulk.dat.cen %*% sc.dat.pca.rotation
 
-      return(list("sc.dat.rot" = sc.dat.rot[, 1:n.pc],
-                  "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]))
-    } else{
+      return(list(
+        "sc.dat.rot" = sc.dat.rot[, 1:n.pc],
+        "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]
+      ))
+    } else {
       # Do PCA from bulk data
-      bulk.dat.pca <- stats::prcomp(bulk.dat.cen, center = FALSE, scale. = FALSE)
+      bulk.dat.pca <- stats::prcomp(
+        bulk.dat.cen,
+        center = FALSE,
+        scale. = FALSE
+      )
       bulk.dat.pca.rotation <- bulk.dat.pca[["rotation"]]
 
       sc.dat.rot <- sc.dat.cen %*% bulk.dat.pca.rotation
       bulk.dat.rot <- bulk.dat.cen %*% bulk.dat.pca.rotation
 
-      return(list("sc.dat.rot" = sc.dat.rot[, 1:n.pc],
-                  "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]))
+      return(list(
+        "sc.dat.rot" = sc.dat.rot[, 1:n.pc],
+        "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]
+      ))
     }
-
   } else {
     stop("Row names of sc.dat and bulk.data do not match.")
   }

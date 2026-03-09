@@ -5,6 +5,7 @@
 Numerous algorithms have been proposed to identify cell types in single-cell RNA sequencing data, yet a fundamental problem remains: determining associations between cells and phenotypes such as cancer. We develop SCIPAC (Single- Cell and bulk data-based Identifier for Phenotype Associated Cells), the first algorithm that quantitatively estimates the association between each cell in single-cell data and a phenotype. SCIPAC also provides a p-value for each association and applies to data with virtually any type of phenotype, for instance, binary (e.g., cancer vs. normal), ordinal (e.g., different stages of cancer), continuous (e.g., quantitative traits), or survival. SCIPAC also requires minimum tuning and is computationally very fast.
 
 ## Updates
+* Mar, 2026: code formated, example data deleted for faster package downloading, pass R CMD check.
 * Jun, 2024: minor updates in the package due to the changes in the dependencies.
 * Nov, 2022: SCIPAC version 1.0.0 is launched.
 

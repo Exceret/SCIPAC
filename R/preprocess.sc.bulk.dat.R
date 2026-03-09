@@ -1,4 +1,3 @@
-
 #' Normalize scRNA-seq data and find highly variable genes without scaling using Seurat
 #'
 #' @param exprs.data single-cell data matrix. Rows stand for genes and columns stand for cells.
@@ -6,10 +5,23 @@
 #'
 #' @return a single-cell data matrix. Rows stand for genes and columns stand for cells.
 #' @importFrom dplyr %>%
-obtain.preprocessed.data <- function(exprs.data, hvg = 1000){
-  exprs.data <- Seurat::CreateSeuratObject(exprs.data, project = "CreateSeuratObject", min.cells = 3, min.features = 200)
-  exprs.data <- Seurat::NormalizeData(exprs.data, normalization.method = "LogNormalize", scale.factor = 10000)
-  exprs.data <- Seurat::FindVariableFeatures(exprs.data, selection.method = "vst", nfeatures = hvg)
+obtain.preprocessed.data <- function(exprs.data, hvg = 1000) {
+  exprs.data <- Seurat::CreateSeuratObject(
+    exprs.data,
+    project = "CreateSeuratObject",
+    min.cells = 3,
+    min.features = 200
+  )
+  exprs.data <- Seurat::NormalizeData(
+    exprs.data,
+    normalization.method = "LogNormalize",
+    scale.factor = 10000
+  )
+  exprs.data <- Seurat::FindVariableFeatures(
+    exprs.data,
+    selection.method = "vst",
+    nfeatures = hvg
+  )
 
   exprs.data.norm <- exprs.data[["RNA"]]$data
   exprs.data.variable.genes <- Seurat::VariableFeatures(exprs.data)
@@ -19,7 +31,6 @@ obtain.preprocessed.data <- function(exprs.data, hvg = 1000){
 
   return(processed.data)
 }
-
 
 
 #' Pre-process both single-cell and bulk data
@@ -37,7 +48,7 @@ obtain.preprocessed.data <- function(exprs.data, hvg = 1000){
 #' @importFrom dplyr %>%
 #' @export
 
-preprocess.sc.bulk.dat <- function(sc.dat, bulk.dat, hvg = 1000){
+preprocess.sc.bulk.dat <- function(sc.dat, bulk.dat, hvg = 1000) {
   overlap.genes <- intersect(rownames(sc.dat), rownames(bulk.dat))
 
   sc.dat.new <- sc.dat[overlap.genes, ]
@@ -45,10 +56,14 @@ preprocess.sc.bulk.dat <- function(sc.dat, bulk.dat, hvg = 1000){
   bulk.dat.new <- bulk.dat[overlap.genes, ] %>% as.matrix()
   bulk.dat.new <- log(bulk.dat.new + 1)
 
-
-  sc.dat.preprocessed <- obtain.preprocessed.data(exprs.data = sc.dat.new, hvg = hvg)
+  sc.dat.preprocessed <- obtain.preprocessed.data(
+    exprs.data = sc.dat.new,
+    hvg = hvg
+  )
   bulk.dat.preprocessed <- bulk.dat.new[rownames(sc.dat.preprocessed), ]
 
-  return(list("sc.dat.preprocessed" = sc.dat.preprocessed,
-              "bulk.dat.preprocessed" = bulk.dat.preprocessed))
+  return(list(
+    "sc.dat.preprocessed" = sc.dat.preprocessed,
+    "bulk.dat.preprocessed" = bulk.dat.preprocessed
+  ))
 }

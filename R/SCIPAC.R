@@ -20,17 +20,22 @@
 #' Lambda is the calculated Lambda for each cell. Cells from the same cluster have the same value of Lambda.
 #' @importFrom dplyr %>%
 
-classifier.Lambda.core <- function(bulk.dat, y, family, K.means.res, ela.net.alpha, nfold){
+classifier.Lambda.core <- function(
+  bulk.dat,
+  y,
+  family,
+  K.means.res,
+  ela.net.alpha,
+  nfold
+) {
   K.means.cent <- K.means.res$centers
   K <- K.means.res$k
   ct.assign <- K.means.res$ct.assignment
 
-  if((family == "binomial")
-     | (family == "cumulative")){
-
-    if(is.numeric(y)){
+  if ((family == "binomial") | (family == "cumulative")) {
+    if (is.numeric(y)) {
       y <- factor(y)
-    } else if(is.factor(y)){
+    } else if (is.factor(y)) {
       y <- as.numeric(y)
       y <- factor(y, levels = c(1:length(unique(y))))
     }
@@ -52,25 +57,44 @@ classifier.Lambda.core <- function(bulk.dat, y, family, K.means.res, ela.net.alp
       new.sample <- rbind(new.sample, lab.dat)
       new.y <- append(new.y, y.bt)
     }
-    new.sample.ave <- colSums(new.sample)/nrow(new.sample)
+    new.sample.ave <- colSums(new.sample) / nrow(new.sample)
 
-    if(family == "binomial"){
+    if (family == "binomial") {
       # Apply logistic regression
-      cv.ela.net <- glmnet::cv.glmnet(as.matrix(new.sample), new.y, family = "binomial", alpha = ela.net.alpha,
-                                      nfolds = nfold)
-      logit.mol.ela.net <- glmnet::glmnet(new.sample, new.y, family = "binomial",
-                                  alpha = ela.net.alpha, lambda = cv.ela.net$lambda.min, standardize = TRUE)
+      cv.ela.net <- glmnet::cv.glmnet(
+        as.matrix(new.sample),
+        new.y,
+        family = "binomial",
+        alpha = ela.net.alpha,
+        nfolds = nfold
+      )
+      logit.mol.ela.net <- glmnet::glmnet(
+        new.sample,
+        new.y,
+        family = "binomial",
+        alpha = ela.net.alpha,
+        lambda = cv.ela.net$lambda.min,
+        standardize = TRUE
+      )
       beta <- stats::coef(logit.mol.ela.net)[-1] %>% c()
-    } else if(family == "cumulative"){
+    } else if (family == "cumulative") {
       # Apply penalized ordinal regression
-      pen.logit.ela.net <- ordinalNet::ordinalNet(as.matrix(new.sample), new.y, family="cumulative",
-                                      link="logit", alpha = ela.net.alpha,
-                                      parallelTerms=TRUE, nonparallelTerms=FALSE, standardize = TRUE, reverse = TRUE)
+      pen.logit.ela.net <- ordinalNet::ordinalNet(
+        as.matrix(new.sample),
+        new.y,
+        family = "cumulative",
+        link = "logit",
+        alpha = ela.net.alpha,
+        parallelTerms = TRUE,
+        nonparallelTerms = FALSE,
+        standardize = TRUE,
+        reverse = TRUE
+      )
       beta <- stats::coef(pen.logit.ela.net)[-c(1:(n.class - 1))]
     }
 
     # Calculate Lambda
-    Lambda <- sapply(c(1:K), function(k){
+    Lambda <- sapply(c(1:K), function(k) {
       chosen.cen <- K.means.cent[, k]
       x <- chosen.cen - new.sample.ave
       logit <- t(beta) %*% x
@@ -80,7 +104,6 @@ classifier.Lambda.core <- function(bulk.dat, y, family, K.means.res, ela.net.alp
     # Do the standardization
     ct.assign$Lambda <- scale(ct.assign$Lambda, center = TRUE, scale = TRUE)
     return(ct.assign)
-
   } else if (family == "gaussian") {
     n.row <- nrow(bulk.dat)
     re.sample <- sample(1:n.row, n.row, replace = TRUE)
@@ -88,17 +111,28 @@ classifier.Lambda.core <- function(bulk.dat, y, family, K.means.res, ela.net.alp
 
     new.y <- y[re.sample]
 
-    new.sample.ave <- colSums(new.sample)/nrow(new.sample)
+    new.sample.ave <- colSums(new.sample) / nrow(new.sample)
 
     # Apply linear regression with elastic net
-    cv.ela.net <- glmnet::cv.glmnet(as.matrix(new.sample), new.y, family = "gaussian", alpha = ela.net.alpha,
-                                    nfolds = nfold)
-    linear.mol.ela.net <- glmnet::glmnet(new.sample, new.y, family = "gaussian", alpha = ela.net.alpha,
-                                 lambda = cv.ela.net$lambda.min, standardize = TRUE)
+    cv.ela.net <- glmnet::cv.glmnet(
+      as.matrix(new.sample),
+      new.y,
+      family = "gaussian",
+      alpha = ela.net.alpha,
+      nfolds = nfold
+    )
+    linear.mol.ela.net <- glmnet::glmnet(
+      new.sample,
+      new.y,
+      family = "gaussian",
+      alpha = ela.net.alpha,
+      lambda = cv.ela.net$lambda.min,
+      standardize = TRUE
+    )
     beta <- stats::coef(linear.mol.ela.net)[-1] %>% c()
 
     # Calculate Lambda
-    Lambda <- sapply(c(1:K), function(k){
+    Lambda <- sapply(c(1:K), function(k) {
       chosen.cen <- K.means.cent[, k]
       x <- chosen.cen - new.sample.ave
       logit <- t(beta) %*% x
@@ -108,26 +142,36 @@ classifier.Lambda.core <- function(bulk.dat, y, family, K.means.res, ela.net.alp
     # Do the standardization
     ct.assign$Lambda <- scale(ct.assign$Lambda, center = TRUE, scale = TRUE)
     return(ct.assign)
-
-  } else if (family == "cox"){
+  } else if (family == "cox") {
     # Re-sampling the whole survival data
     all.rownames <- rownames(bulk.dat)
     re.sample <- sample(all.rownames, length(all.rownames), replace = TRUE)
     re.sample.dat <- bulk.dat[re.sample, ]
 
     new.y <- y[rownames(re.sample.dat), ]
-    new.sample.ave <- colSums(re.sample.dat)/nrow(re.sample.dat)
+    new.sample.ave <- colSums(re.sample.dat) / nrow(re.sample.dat)
 
     # Apply cox regression
-    cv.ela.net <- glmnet::cv.glmnet(re.sample.dat, new.y,
-                            family = "cox", type.measure = "C",
-                            alpha = ela.net.alpha, nfolds = nfold)
-    cox.ela.net <- glmnet::glmnet(re.sample.dat, new.y, family = "cox",
-                          alpha = ela.net.alpha, lambda = cv.ela.net$lambda.min, standardize = TRUE)
+    cv.ela.net <- glmnet::cv.glmnet(
+      re.sample.dat,
+      new.y,
+      family = "cox",
+      type.measure = "C",
+      alpha = ela.net.alpha,
+      nfolds = nfold
+    )
+    cox.ela.net <- glmnet::glmnet(
+      re.sample.dat,
+      new.y,
+      family = "cox",
+      alpha = ela.net.alpha,
+      lambda = cv.ela.net$lambda.min,
+      standardize = TRUE
+    )
     beta <- stats::coef(cox.ela.net) %>% as.matrix()
 
     # Calculate Lambda
-    Lambda <- sapply(c(1:K), function(k){
+    Lambda <- sapply(c(1:K), function(k) {
       chosen.cen <- K.means.cent[, k]
       x <- chosen.cen - new.sample.ave
       logit <- t(beta) %*% x
@@ -137,9 +181,10 @@ classifier.Lambda.core <- function(bulk.dat, y, family, K.means.res, ela.net.alp
     # Do the standardization
     ct.assign$Lambda <- scale(ct.assign$Lambda, center = TRUE, scale = TRUE)
     return(ct.assign)
-
   } else {
-    stop("Please choose a valid family argument from 'binomial', 'cumulative', 'gaussian' or 'cox'")
+    stop(
+      "Please choose a valid family argument from 'binomial', 'cumulative', 'gaussian' or 'cox'"
+    )
   }
 }
 
@@ -166,12 +211,26 @@ classifier.Lambda.core <- function(bulk.dat, y, family, K.means.res, ela.net.alp
 #' @return A data frame whose rows are cells and columns are bootstrap samples.
 #' @importFrom dplyr %>%
 
-classifier.Lambda <- function(bulk.dat, y, family, K.means.res, ela.net.alpha, 
-                              bt.size, nfold = nfold, numCores){
-  fx <- function(seed){
+classifier.Lambda <- function(
+  bulk.dat,
+  y,
+  family,
+  K.means.res,
+  ela.net.alpha,
+  bt.size,
+  nfold = nfold,
+  numCores
+) {
+  fx <- function(seed) {
     set.seed(seed)
-    return(classifier.Lambda.core(bulk.dat, y, family, K.means.res, 
-                                  ela.net.alpha = ela.net.alpha, nfold = nfold))
+    return(classifier.Lambda.core(
+      bulk.dat,
+      y,
+      family,
+      K.means.res,
+      ela.net.alpha = ela.net.alpha,
+      nfold = nfold
+    ))
   }
   K <- K.means.res$k
   ct.assign <- K.means.res$ct.assignment
@@ -185,7 +244,7 @@ classifier.Lambda <- function(bulk.dat, y, family, K.means.res, ela.net.alpha,
   }
 
   # Delete columns with NAs.
-  if(sum(is.na(Lambda.res[1, ])) == 0){
+  if (sum(is.na(Lambda.res[1, ])) == 0) {
     Lambda.res <- Lambda.res
   } else {
     na.idx <- which(is.na(Lambda.res[1, ]))
@@ -207,27 +266,30 @@ classifier.Lambda <- function(bulk.dat, y, family, K.means.res, ela.net.alpha,
 #' @importFrom dplyr %>%
 #' @importFrom stats var
 
-obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05){
+obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
   K <- K.means.res$k
-  prob <- 1 - CI.alpha/2
+  prob <- 1 - CI.alpha / 2
 
-  Lambda.est <- rowSums(Lambda.res)/ncol(Lambda.res)
-  Lambda.upper <- Lambda.est + stats::qnorm(prob)*sqrt(apply(Lambda.res, 1, var))
-  Lambda.lower <- Lambda.est - stats::qnorm(prob)*sqrt(apply(Lambda.res, 1, var))
+  Lambda.est <- rowSums(Lambda.res) / ncol(Lambda.res)
+  Lambda.upper <- Lambda.est +
+    stats::qnorm(prob) * sqrt(apply(Lambda.res, 1, var))
+  Lambda.lower <- Lambda.est -
+    stats::qnorm(prob) * sqrt(apply(Lambda.res, 1, var))
 
   Lambda.std <- sqrt(apply(Lambda.res, 1, var))
-  Lambda.z <- apply(Lambda.res, 1, mean)/Lambda.std
+  Lambda.z <- apply(Lambda.res, 1, mean) / Lambda.std
   Lambda.z.sign <- sign(Lambda.z)
-  Lambda.pval.nlog <- -log10(2*stats::pnorm(q = abs(Lambda.z), lower.tail = FALSE))
-  Lambda.pval <- Lambda.z.sign*Lambda.pval.nlog
+  Lambda.pval.nlog <- -log10(
+    2 * stats::pnorm(q = abs(Lambda.z), lower.tail = FALSE)
+  )
+  Lambda.pval <- Lambda.z.sign * Lambda.pval.nlog
 
   Lambda.sig <- rep(NA, nrow(Lambda.res))
 
   sign.res <- sign(Lambda.upper) + sign(Lambda.lower)
-  Lambda.sig[sign.res == 0] <- "Not.sig"
-  Lambda.sig[sign.res > 0] <- "Sig.pos"
-  Lambda.sig[sign.res < 0] <- "Sig.neg"
-
+  Lambda.sig[sign.res == 0] <- "Neutral"
+  Lambda.sig[sign.res > 0] <- "Positive"
+  Lambda.sig[sign.res < 0] <- "Negative"
 
   ct.assign <- K.means.res$ct.assignment
   ct.assign$Lambda.est <- Lambda.est
@@ -236,7 +298,10 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05){
   ct.assign$sig <- Lambda.sig
   ct.assign$log.pval <- Lambda.pval
 
-  ct.assign$sig <- factor(ct.assign$sig, levels = c("Sig.pos", "Sig.neg", "Not.sig"))
+  ct.assign$sig <- factor(
+    ct.assign$sig,
+    levels = c("Positive", "Negative", "Neutral")
+  )
 
   return(ct.assign)
 }
@@ -275,16 +340,33 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05){
 #' \item (2). \code{Lambda.est}: the estimated Lambda;
 #' \item (3). \code{Lambda.upper}: the upper value of the confidence interval;
 #' \item (4). \code{Lambda.lower}: the lower value of the confidence interval;
-#' \item (5). \code{sig}: significance identification, includes "Sig.pos", "Sig.neg", and "Not.sig";
+#' \item (5). \code{sig}: significance identification, includes "Positive", "Negative", and "Neutral";
 #' \item (6). \code{log.pval}: log10 p-values
 #' }
 #' @importFrom dplyr %>%
 #' @export
 
-SCIPAC <- function(bulk.dat, y, family, ct.res, ela.net.alpha = 0.4,
-                   bt.size = 50, numCores = 7, CI.alpha = 0.05, nfold = 10){
-  Lambda.res <- classifier.Lambda(bulk.dat, y, family, ct.res, ela.net.alpha = ela.net.alpha, 
-                                  bt.size = bt.size, nfold = nfold, numCores = numCores)
+SCIPAC <- function(
+  bulk.dat,
+  y,
+  family,
+  ct.res,
+  ela.net.alpha = 0.4,
+  bt.size = 50,
+  numCores = 7,
+  CI.alpha = 0.05,
+  nfold = 10
+) {
+  Lambda.res <- classifier.Lambda(
+    bulk.dat,
+    y,
+    family,
+    ct.res,
+    ela.net.alpha = ela.net.alpha,
+    bt.size = bt.size,
+    nfold = nfold,
+    numCores = numCores
+  )
   ct.assign <- obtain.ct.Lambda(Lambda.res, ct.res, CI.alpha = CI.alpha)
   return(ct.assign)
 }
