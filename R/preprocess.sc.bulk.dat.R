@@ -3,7 +3,7 @@
 #' @param exprs.data single-cell data matrix. Rows stand for genes and columns stand for cells.
 #' @param hvg the number of highly variable genes. The default is 1000.
 #' @param assay the assay name. The default is "RNA".
-#'
+#' @export
 #' @return a single-cell data matrix. Rows stand for genes and columns stand for cells.
 obtain.preprocessed.data <- function(exprs.data, hvg = 1000, assay = "RNA") {
   exprs.data <- Seurat::CreateSeuratObject(

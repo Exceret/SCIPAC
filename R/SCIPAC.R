@@ -16,6 +16,7 @@
 #' Each cluster centroid is calculated by taking the average value of all the cells in the cluster.
 #' @param ela.net.alpha the parameter alpha used for the elastic net. 0 for ridge and 1 for lasso. The default is 0.4.
 #' @param nfold The number of folds used in cross-validation for regression models. The default is \code{nfold = 10}.
+#' @export
 #' @return a data frame with two columns. One column named ct.assignment is the cluster assignment, and the other one named
 #' Lambda is the calculated Lambda for each cell. Cells from the same cluster have the same value of Lambda.
 
@@ -248,6 +249,7 @@ classifier.Lambda.core <- function(
 #' @param nfold The number of folds used in cross-validation for regression models. The default is \code{nfold = 10}.
 #' @param numCores the number of cores used for parallel computing. The default is 7.
 #' @param debug logical. Whether to print debug information. The default is FALSE.
+#' @export
 #' @return A data frame whose rows are cells and columns are bootstrap samples.
 
 classifier.Lambda <- function(
@@ -371,6 +373,7 @@ classifier.Lambda <- function(
 #' Each cluster centroid is calculated by taking the average value of all the cells in the cluster.
 #' @param CI.alpha significance level used to decide significantly positive/negative results. The default is 0.05.
 #' @return A data frame whose rows are cells and columns are bootstrap samples.
+#' @export
 #' @importFrom stats var
 
 obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
@@ -399,14 +402,14 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
   Lambda.sig[sign.res < 0] <- "Negative"
 
   ct.assign <- K.means.res$ct.assignment
-  ct.assign$Lambda.est <- Lambda.est
-  ct.assign$Lambda.upper <- Lambda.upper
-  ct.assign$Lambda.lower <- Lambda.lower
-  ct.assign$sig <- Lambda.sig
-  ct.assign$log.pval <- Lambda.pval
+  ct.assign$SCIPAC_Lambda_est <- Lambda.est
+  ct.assign$SCIPAC_Lambda_upper <- Lambda.upper
+  ct.assign$SCIPAC_Lambda_lower <- Lambda.lower
+  ct.assign$SCIPAC <- Lambda.sig
+  ct.assign$SCIPAC_log_pval <- Lambda.pval
 
-  ct.assign$sig <- factor(
-    ct.assign$sig,
+  ct.assign$SCIPAC <- factor(
+    ct.assign$SCIPAC,
     levels = c("Positive", "Negative", "Neutral")
   )
 
