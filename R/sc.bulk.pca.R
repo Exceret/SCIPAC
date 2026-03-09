@@ -12,68 +12,105 @@
 #' @importFrom dplyr %>%
 #' @export
 
-sc.bulk.pca <- function(sc.dat, bulk.dat, do.pca.sc = FALSE, n.pc = 60, batch_var = NULL){
+sc.bulk.pca <- function(
+  sc.dat,
+  bulk.dat,
+  do.pca.sc = FALSE,
+  n.pc = 60,
+  batch_var = NULL
+) {
   # Check batch_var if provided
   if (!is.null(batch_var)) {
     if (length(batch_var) != ncol(sc.dat)) {
       stop("Length of batch_var must match the number of cells in sc.dat")
     }
     if (!requireNamespace("harmony", quietly = TRUE)) {
-      stop("Package 'harmony' is required for batch correction. Please install it using: install.packages('harmony')")
+      stop(
+        "Package 'harmony' is required for batch correction. Please install it using: install.packages('harmony')"
+      )
     }
   }
-  
-  if(all(rownames(sc.dat) == rownames(bulk.dat))) {
-    # Do the centering
-    sc.dat.cen <- scale(t(sc.dat), center = rowSums(sc.dat)/ncol(sc.dat), scale = FALSE)
-    bulk.dat.cen <- scale(t(bulk.dat), center = rowSums(bulk.dat)/ncol(bulk.dat), scale = FALSE)
 
-    if(do.pca.sc){
+  if (all(rownames(sc.dat) == rownames(bulk.dat))) {
+    # Do the centering
+    sc.dat.cen <- scale(
+      t(sc.dat),
+      center = rowSums(sc.dat) / ncol(sc.dat),
+      scale = FALSE
+    )
+    bulk.dat.cen <- scale(
+      t(bulk.dat),
+      center = rowSums(bulk.dat) / ncol(bulk.dat),
+      scale = FALSE
+    )
+
+    if (do.pca.sc) {
       # Do PCA from single cell data
-      sc.dat.pca <- stats::prcomp(sc.dat.cen, center = FALSE, scale. = FALSE)
+      sc.dat.pca <- stats::prcomp(
+        sc.dat.cen,
+        center = FALSE,
+        scale. = FALSE
+      )
       sc.dat.pca.rotation <- sc.dat.pca[["rotation"]]
 
       sc.dat.rot <- sc.dat.cen %*% sc.dat.pca.rotation
       bulk.dat.rot <- bulk.dat.cen %*% sc.dat.pca.rotation
-      
+
       # Apply harmony if batch_var is provided
       if (!is.null(batch_var)) {
-        meta_data <- data.frame(batch = batch_var, row.names = rownames(sc.dat.rot))
+        meta_data <- data.frame(
+          batch = batch_var,
+          row.names = rownames(sc.dat.rot)
+        )
         sc.dat.rot.corrected <- harmony::RunHarmony(
           data_mat = sc.dat.rot[, 1:n.pc],
           meta_data = meta_data,
           vars_use = "batch"
         )
-        return(list("sc.dat.rot" = sc.dat.rot.corrected,
-                    "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]))
+        return(list(
+          "sc.dat.rot" = sc.dat.rot.corrected,
+          "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]
+        ))
       }
 
-      return(list("sc.dat.rot" = sc.dat.rot[, 1:n.pc],
-                  "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]))
-    } else{
+      return(list(
+        "sc.dat.rot" = sc.dat.rot[, 1:n.pc],
+        "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]
+      ))
+    } else {
       # Do PCA from bulk data
-      bulk.dat.pca <- stats::prcomp(bulk.dat.cen, center = FALSE, scale. = FALSE)
+      bulk.dat.pca <- stats::prcomp(
+        bulk.dat.cen,
+        center = FALSE,
+        scale. = FALSE
+      )
       bulk.dat.pca.rotation <- bulk.dat.pca[["rotation"]]
 
       sc.dat.rot <- sc.dat.cen %*% bulk.dat.pca.rotation
       bulk.dat.rot <- bulk.dat.cen %*% bulk.dat.pca.rotation
-      
+
       # Apply harmony if batch_var is provided
       if (!is.null(batch_var)) {
-        meta_data <- data.frame(batch = batch_var, row.names = rownames(sc.dat.rot))
+        meta_data <- data.frame(
+          batch = batch_var,
+          row.names = rownames(sc.dat.rot)
+        )
         sc.dat.rot.corrected <- harmony::RunHarmony(
           data_mat = sc.dat.rot[, 1:n.pc],
           meta_data = meta_data,
           vars_use = "batch"
         )
-        return(list("sc.dat.rot" = sc.dat.rot.corrected,
-                    "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]))
+        return(list(
+          "sc.dat.rot" = sc.dat.rot.corrected,
+          "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]
+        ))
       }
 
-      return(list("sc.dat.rot" = sc.dat.rot[, 1:n.pc],
-                  "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]))
+      return(list(
+        "sc.dat.rot" = sc.dat.rot[, 1:n.pc],
+        "bulk.dat.rot" = bulk.dat.rot[, 1:n.pc]
+      ))
     }
-
   } else {
     stop("Row names of sc.dat and bulk.data do not match.")
   }

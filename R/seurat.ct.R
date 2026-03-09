@@ -11,11 +11,15 @@
 #' @importFrom dplyr %>%
 #' @export
 
-seurat.ct <- function(sc.dat, res = 2.0){
+seurat.ct <- function(sc.dat, res = 2.0) {
   n.PC <- ncol(sc.dat)
 
   seurat.dat <- Seurat::CreateSeuratObject(counts = t(sc.dat))
-  new.embedding <- Seurat::CreateDimReducObject(sc.dat, assay = "RNA", key = "pca_")
+  new.embedding <- Seurat::CreateDimReducObject(
+    sc.dat,
+    assay = "RNA",
+    key = "pca_"
+  )
   seurat.dat@reductions$pca <- new.embedding
   seurat.dat <- Seurat::FindNeighbors(seurat.dat, dims = 1:n.PC)
   seurat.dat <- Seurat::FindClusters(seurat.dat, resolution = res)
@@ -23,17 +27,21 @@ seurat.ct <- function(sc.dat, res = 2.0){
   clean_batch_cluster <- as.data.frame(Seurat::Idents(seurat.dat))
   colnames(clean_batch_cluster) <- "cluster_assignment"
   k <- length(unique(Seurat::Idents(seurat.dat)))
-  clean_batch_cluster$cluster_assignment <- as.numeric(clean_batch_cluster$cluster_assignment)
+  clean_batch_cluster$cluster_assignment <- as.numeric(
+    clean_batch_cluster$cluster_assignment
+  )
 
-
-  centers <- sapply(c(1:k), function(ct){
-    sub.bc <- rownames(clean_batch_cluster)[which(clean_batch_cluster$cluster_assignment == ct)]
+  centers <- sapply(c(1:k), function(ct) {
+    sub.bc <- rownames(clean_batch_cluster)[which(
+      clean_batch_cluster$cluster_assignment == ct
+    )]
     sub.dat <- t(sc.dat)[, sub.bc, drop = FALSE]
-    rowSums(sub.dat)/ncol(sub.dat)
+    rowSums(sub.dat) / ncol(sub.dat)
   })
 
-  return(list("k" = k,
-              "ct.assignment" = clean_batch_cluster,
-              "centers" = centers))
+  return(list(
+    "k" = k,
+    "ct.assignment" = clean_batch_cluster,
+    "centers" = centers
+  ))
 }
-
