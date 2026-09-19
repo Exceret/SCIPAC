@@ -4,3 +4,9 @@
 ^README.html$
 ^[.]?air[.]toml$
 ^\.vscode$
+
+
+# flir files
+^flir$
+^\.github$
+^codecov\.yml$

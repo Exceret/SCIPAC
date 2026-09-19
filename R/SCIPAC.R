@@ -37,7 +37,7 @@ classifier.Lambda.core <- function(
       y <- factor(y)
     } else if (is.factor(y)) {
       y <- as.numeric(y)
-      y <- factor(y, levels = c(1:length(unique(y))))
+      y <- factor(y, levels = c(seq_along(unique(y))))
     }
 
     class.lab <- unique(y)
@@ -119,7 +119,7 @@ classifier.Lambda.core <- function(
     return(ct.assign)
   } else if (family == "gaussian") {
     n.row <- nrow(bulk.dat)
-    re.sample <- sample(1:n.row, n.row, replace = TRUE)
+    re.sample <- sample.int(n.row, n.row, replace = TRUE)
     new.sample <- bulk.dat[re.sample, ]
 
     new.y <- y[re.sample]
@@ -387,7 +387,7 @@ obtain.ct.Lambda <- function(Lambda.res, K.means.res, CI.alpha = 0.05) {
     stats::qnorm(prob) * sqrt(apply(Lambda.res, 1, var))
 
   Lambda.std <- sqrt(apply(Lambda.res, 1, var))
-  Lambda.z <- apply(Lambda.res, 1, mean) / Lambda.std
+  Lambda.z <- rowMeans(Lambda.res) / Lambda.std
   Lambda.z.sign <- sign(Lambda.z)
   Lambda.pval.nlog <- -log10(
     2 * stats::pnorm(q = abs(Lambda.z), lower.tail = FALSE)
